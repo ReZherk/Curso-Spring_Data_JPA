@@ -92,6 +92,62 @@ private Serie serie;
 - **cascade = ALL**: al guardar la serie, también se guardan sus episodios
 - **fetch = EAGER**: al consultar la serie, se cargan los episodios automáticamente
 
+## 🔄 ¿Cómo JPA trae los episodios desde la base de datos?
+
+Cuando usamos Spring Data JPA, no es necesario escribir consultas SQL para obtener los episodios de una serie. Gracias a las anotaciones de relación entre entidades, JPA lo hace automáticamente.
+
+### 📌 En la entidad `Serie`:
+
+```java
+@OneToMany(mappedBy = "serie", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+private List<Episodio> episodios;
+```
+
+- **mappedBy = "serie"** indica que la relación se gestiona desde la entidad `Episodio`
+- **fetch = FetchType.EAGER** le dice a JPA que cargue los episodios inmediatamente junto con la serie
+
+### 📌 En la entidad `Episodio`:
+
+```java
+@ManyToOne
+private Serie serie;
+```
+
+Esto crea en la base de datos una columna `serie_id`, que actúa como clave foránea apuntando al `id` de la serie.
+
+### 🧠 ¿Qué ocurre internamente?
+
+Cuando se ejecuta:
+
+```java
+List<Serie> series = repositorio.findAll();
+```
+
+JPA hace:
+
+```sql
+SELECT * FROM series;
+```
+
+Por cada serie encontrada, hace:
+
+```sql
+SELECT * FROM episodios WHERE serie_id = ?;
+```
+
+Gracias al mapeo con `@OneToMany`, cada objeto `Serie` viene con su lista `episodios` ya cargada (si usas EAGER).
+
+### ✅ Resultado
+
+Puedes acceder directamente así:
+
+```java
+Serie s = series.get(0);
+List<Episodio> episodios = s.getEpisodios();  // Ya están listos
+```
+
+No necesitas consultar manualmente los episodios: JPA los trae usando el `id` de la serie como clave foránea.
+
 ## ✅ Conclusión
 
 - La clase `Principal` actúa como controlador de flujo
